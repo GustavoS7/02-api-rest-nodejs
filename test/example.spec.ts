@@ -1,9 +1,22 @@
-import { expect, test } from "vitest";
-import supertest from "supertest";
-import { app } from "../src/app"; }
+import { afterAll, beforeAll, expect, test } from "vitest";
+import { app } from "../src/app";
+import request from "supertest";
 
-test("O usuário consegue criar uma nova transação", () => {
-  const responseStatusCode = 201;
+beforeAll(async () => {
+  await app.ready();
+});
 
-  expect(responseStatusCode).toEqual(201);
+afterAll(async () => {
+  await app.close();
+});
+
+test("O usuário consegue criar uma nova transação", async () => {
+  await request(app.server)
+    .post("/transactions")
+    .send({
+      title: "any_transaction",
+      amount: 1,
+      type: "credit",
+    })
+    .expect(201);
 });
