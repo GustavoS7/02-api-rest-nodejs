@@ -1,38 +1,61 @@
+import { checkSessionIdExists } from "../middleware/check-session-id-exists";
 import { FastifyInstance } from "fastify";
 import { randomUUID } from "crypto";
 import { knex } from "../database";
 import { z } from "zod";
 
 export async function transactionRoutes(app: FastifyInstance) {
-  app.get("/", async () => {
-    const transactions = await knex("transactions").select();
+  app.get(
+    "/",
+    {
+      preHandler: [checkSessionIdExists],
+    },
+    async (request) => {
+      const { sessionId } = request.cookies;
 
-    return { transactions };
-  });
+      const transactions = await knex("transactions")
+        .where("session_id", sessionId)
+        .select();
 
-  app.get("/:id", async (request) => {
-    const getTransactionParamsSchema = z.object({
-      id: z.string().uuid(),
-    });
+      return { transactions };
+    },
+  );
 
-    const { id } = getTransactionParamsSchema.parse(request);
+  app.get(
+    "/:id",
+    {
+      preHandler: [checkSessionIdExists],
+    },
+    async (request) => {
+      const getTransactionParamsSchema = z.object({
+        id: z.string().uuid(),
+      });
 
-    const transaction = await knex("transactions").where("id", id).first();
+      const { id } = getTransactionParamsSchema.parse(request);
 
-    return {
-      transaction,
-    };
-  });
+      const transaction = await knex("transactions").where("id", id).first();
 
-  app.get("/summary", async () => {
-    const summary = await knex("transactions")
-      .sum("amount", { as: "amount" })
-      .first();
+      return {
+        transaction,
+      };
+    },
+  );
 
-    return {
-      summary,
-    };
-  });
+  app.get(
+    "/summary",
+    {
+      preHandler: [checkSessionIdExists],
+    },
+    async () => {
+      const summary = await knex("transactions")
+        .sum("amount", { as: "amount" })
+        .first();
+
+      return {
+        summary,
+      };
+    },
+  );
 
   app.post("/", async (request, reply) => {
     const createTransactionBodySchema = z.object({
